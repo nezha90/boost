@@ -252,6 +252,15 @@ func action(cctx *cli.Context) error {
 
 			dr.SectorsWithoutDeals = append(dr.SectorsWithoutDeals, uint64(info.SectorNumber))
 			continue
+		} else {
+			sectorInfo, err := minerApi.SectorsStatus(ctx, info.SectorNumber, true)
+			if err != nil {
+				logger.Infow("使用minerApi获取sector 状态错误", "sector", info.SectorNumber)
+
+				continue
+			}
+
+			info.DealIDs = sectorInfo.Deals
 		}
 
 		dr.SectorsWithDeals = append(dr.SectorsWithDeals, uint64(info.SectorNumber))
