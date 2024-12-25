@@ -248,14 +248,20 @@ func action(cctx *cli.Context) error {
 		}
 
 		if len(info.DealIDs) < 1 {
-			sectorInfo, err := minerApi.SectorsStatus(ctx, info.SectorNumber, true)
+			status, err := minerApi.SectorsStatus(ctx, info.SectorNumber, false)
 			if err != nil {
-				logger.Infow("使用minerApi获取sector 状态错误", "sector", info.SectorNumber)
-
+				return err
+			}
+			if len(status.Deals) == 0 || status.Deals[0] == 0 {
+				logger.Infow("no deals in sector", "sector", info.SectorNumber)
+				dr.SectorsWithoutDeals = append(dr.SectorsWithoutDeals, uint64(info.SectorNumber))
 				continue
 			}
-
-			info.DealIDs = sectorInfo.Deals
+			for _, d := range status.Deals {
+				if d != 0 {
+					info.DealIDs = append(info.DealIDs, d)
+				}
+			}
 		}
 
 		dr.SectorsWithDeals = append(dr.SectorsWithDeals, uint64(info.SectorNumber))
