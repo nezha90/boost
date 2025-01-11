@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"io"
 	"net/http"
 	"strings"
@@ -55,6 +56,8 @@ func (s *HttpServer) handleByPieceCid(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get a reader over the piece
+	//log.Debugf("%v", r)
+	spew.Dump(r)
 	content, err := s.getPieceContent(ctx, pieceCid)
 	if err != nil {
 		if isNotFoundError(err) {
@@ -95,6 +98,84 @@ func (s *HttpServer) getPieceContent(ctx context.Context, pieceCid cid.Cid) (io.
 
 	return pieceReader, nil
 }
+
+//func (s *HttpServer) ReadPieceFromCAR(ctx context.Context, carFilePath string, pieceCID string, offset int64, size int64) (struct {
+//	io.ReadCloser
+//	io.Seeker
+//	io.ReaderAt
+//}, error) {
+//	// 打开 CAR 文件
+//	file, err := os.Open(carFilePath)
+//	if err != nil {
+//		return struct {
+//			io.ReadCloser
+//			io.Seeker
+//			io.ReaderAt
+//		}{}, fmt.Errorf("failed to open CAR file: %w", err)
+//	}
+//
+//	// 使用 go-car v2 打开 CAR 块存储
+//	bs, err := blockstore.OpenReadOnly(carFilePath)
+//	if err != nil {
+//		file.Close()
+//		return struct {
+//			io.ReadCloser
+//			io.Seeker
+//			io.ReaderAt
+//		}{}, fmt.Errorf("failed to open CAR blockstore: %w", err)
+//	}
+//
+//	// 转换输入的 Piece CID 字符串为 CID 对象
+//	cid, err := cid.Parse(pieceCID)
+//	if err != nil {
+//		bs.Close()
+//		file.Close()
+//		return struct {
+//			io.ReadCloser
+//			io.Seeker
+//			io.ReaderAt
+//		}{}, fmt.Errorf("invalid CID format: %w", err)
+//	}
+//
+//	// 从块存储中获取指定 Piece 数据
+//	block, err := bs.Get(ctx, cid)
+//	if err != nil {
+//		bs.Close()
+//		file.Close()
+//		return struct {
+//			io.ReadCloser
+//			io.Seeker
+//			io.ReaderAt
+//		}{}, fmt.Errorf("failed to retrieve piece data: %w", err)
+//	}
+//
+//	// 释放 CAR 块存储资源
+//	bs.Close()
+//
+//	// 确保偏移量和读取大小合法
+//	if offset < 0 || size < 0 || int64(len(block.RawData())) < offset+size {
+//		file.Close()
+//		return struct {
+//			io.ReadCloser
+//			io.Seeker
+//			io.ReaderAt
+//		}{}, fmt.Errorf("invalid offset or size")
+//	}
+//
+//	// 创建 bytes.Reader 以支持读取、查找和指定位置读取
+//	data := block.RawData()[offset : offset+size]
+//	reader := bytes.NewReader(data)
+//
+//	return struct {
+//		io.ReadCloser
+//		io.Seeker
+//		io.ReaderAt
+//	}{
+//		ReadCloser: io.NopCloser(reader),
+//		Seeker:     reader,
+//		ReaderAt:   reader,
+//	}, nil
+//}
 
 func isGzipped(res http.ResponseWriter) bool {
 	switch res.(type) {

@@ -96,9 +96,9 @@ func (s *HttpServer) Start(ctx context.Context) error {
 	c := newCors()
 	handler := http.NewServeMux()
 
-	//if s.opts.ServePieces {
-	//	handler.HandleFunc(s.pieceBasePath(), s.pieceHandler())
-	//}
+	if s.opts.ServePieces {
+		handler.HandleFunc(s.pieceBasePath(), s.pieceHandler())
+	}
 
 	if s.opts.ServeTrustless {
 		if s.opts.Blockstore == nil {
