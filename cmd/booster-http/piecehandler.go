@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
@@ -33,6 +34,23 @@ func (s *HttpServer) pieceHandler() http.HandlerFunc {
 }
 
 func (s *HttpServer) handleByPieceCid(w http.ResponseWriter, r *http.Request) {
+	fmt.Printf("Method: %s\n", r.Method)
+	fmt.Printf("URL: %s\n", r.URL.String())
+	fmt.Println("Headers:")
+	for key, values := range r.Header {
+		// 处理每个头部字段
+		for _, value := range values {
+			fmt.Printf("  %s: %s\n", key, value)
+		}
+	}
+	// 读取请求体内容（如果有）
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Could not read request body", http.StatusInternalServerError)
+		return
+	}
+	fmt.Printf("Body: %s\n", string(body))
+
 	startTime := time.Now()
 	ctx, span := tracing.Tracer.Start(r.Context(), "http.piece_cid")
 	defer span.End()
