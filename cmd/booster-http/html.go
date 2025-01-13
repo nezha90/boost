@@ -42,7 +42,7 @@ func parseTemplate(opts HttpServerOptions) string {
 		})
 	}
 
-	if opts.Blockstore != nil {
+	if opts.Multicar != nil {
 		endpoints = append(endpoints, templateRow{
 			Description: "Download raw blocks or CAR files",
 			Value:       `<a href="/ipfs/bafySomeBlockCid">/ipfs/&lt;block cid&gt;</a>`,

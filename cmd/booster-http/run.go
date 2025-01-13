@@ -5,15 +5,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ipld/frisbii"
+	"github.com/ipld/go-car/v2"
+	"go.uber.org/multierr"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/filecoin-project/boost/build"
 	"github.com/filecoin-project/boost/cmd/lib"
-	"github.com/filecoin-project/boost/cmd/lib/filters"
-	"github.com/filecoin-project/boost/cmd/lib/remoteblockstore"
 	bdclient "github.com/filecoin-project/boost/extern/boostd-data/client"
 	"github.com/filecoin-project/boost/extern/boostd-data/model"
 	"github.com/filecoin-project/boost/extern/boostd-data/shared/tracing"
@@ -25,6 +28,7 @@ import (
 	"github.com/filecoin-project/go-state-types/abi"
 	lcli "github.com/filecoin-project/lotus/cli"
 	"github.com/ipfs/go-cid"
+	carstorage "github.com/ipld/go-car/v2/storage"
 	"github.com/mitchellh/go-homedir"
 	"github.com/urfave/cli/v2"
 	"go.opencensus.io/stats"
@@ -264,33 +268,62 @@ var runCmd = &cli.Command{
 		}
 
 		if serveTrustless {
-			repoDir, err := createRepoDir(cctx.String(FlagRepo.Name))
+			//repoDir, err := createRepoDir(cctx.String(FlagRepo.Name))
+			//if err != nil {
+			//	return err
+			//}
+			//
+			//// Set up badbits filter
+			//multiFilter := filters.NewMultiFilter(repoDir, cctx.String("api-filter-endpoint"), cctx.String("api-filter-auth"), cctx.StringSlice("badbits-denylists"))
+			//err = multiFilter.Start(ctx)
+			//if err != nil {
+			//	return fmt.Errorf("starting block filter: %w", err)
+			//}
+			//
+			//httpBlockMetrics := remoteblockstore.BlockMetrics{
+			//	GetRequestCount:             metrics.HttpRblsGetRequestCount,
+			//	GetFailResponseCount:        metrics.HttpRblsGetFailResponseCount,
+			//	GetSuccessResponseCount:     metrics.HttpRblsGetSuccessResponseCount,
+			//	BytesSentCount:              metrics.HttpRblsBytesSentCount,
+			//	HasRequestCount:             metrics.HttpRblsHasRequestCount,
+			//	HasFailResponseCount:        metrics.HttpRblsHasFailResponseCount,
+			//	HasSuccessResponseCount:     metrics.HttpRblsHasSuccessResponseCount,
+			//	GetSizeRequestCount:         metrics.HttpRblsGetSizeRequestCount,
+			//	GetSizeFailResponseCount:    metrics.HttpRblsGetSizeFailResponseCount,
+			//	GetSizeSuccessResponseCount: metrics.HttpRblsGetSizeSuccessResponseCount,
+			//}
+			//rbs := remoteblockstore.NewRemoteBlockstore(pd, &httpBlockMetrics)
+			//filtered := filters.NewFilteredBlockstore(rbs, multiFilter)
+			//opts.Blockstore = filtered
+
+			cars := []string{
+				"/mnt/172.16.1.47/car/car/baga6ea4seaqkvc4x3z4oa7fhr52esd34tobrmcqewn45b5o7bplwzh4kgrenqaq.car",
+			}
+
+			loader := NewLoader(os.Stderr)
+			multicar := frisbii.NewMultiReadableStorage()
+			var wg sync.WaitGroup
+			loader.SetStatus(fmt.Sprintf("Loading CARs (%d / %d) ...", 0, len(cars)))
+			var loaded int64
+			err = nil
+
+			for ii, carPath := range cars {
+				wg.Add(1)
+				go func(ii int, carPath string) {
+					err = multierr.Append(err, LoadCar(multicar, carPath))
+					wg.Done()
+					l := atomic.AddInt64(&loaded, 1)
+					loader.SetStatus(fmt.Sprintf("Loading CARs (%d / %d) ...", l, len(cars)))
+				}(ii, carPath)
+			}
+			wg.Wait()
 			if err != nil {
 				return err
 			}
 
-			// Set up badbits filter
-			multiFilter := filters.NewMultiFilter(repoDir, cctx.String("api-filter-endpoint"), cctx.String("api-filter-auth"), cctx.StringSlice("badbits-denylists"))
-			err = multiFilter.Start(ctx)
-			if err != nil {
-				return fmt.Errorf("starting block filter: %w", err)
-			}
+			loader.SetStatus("Loaded CARs, starting server ...")
 
-			httpBlockMetrics := remoteblockstore.BlockMetrics{
-				GetRequestCount:             metrics.HttpRblsGetRequestCount,
-				GetFailResponseCount:        metrics.HttpRblsGetFailResponseCount,
-				GetSuccessResponseCount:     metrics.HttpRblsGetSuccessResponseCount,
-				BytesSentCount:              metrics.HttpRblsBytesSentCount,
-				HasRequestCount:             metrics.HttpRblsHasRequestCount,
-				HasFailResponseCount:        metrics.HttpRblsHasFailResponseCount,
-				HasSuccessResponseCount:     metrics.HttpRblsHasSuccessResponseCount,
-				GetSizeRequestCount:         metrics.HttpRblsGetSizeRequestCount,
-				GetSizeFailResponseCount:    metrics.HttpRblsGetSizeFailResponseCount,
-				GetSizeSuccessResponseCount: metrics.HttpRblsGetSizeSuccessResponseCount,
-			}
-			rbs := remoteblockstore.NewRemoteBlockstore(pd, &httpBlockMetrics)
-			filtered := filters.NewFilteredBlockstore(rbs, multiFilter)
-			opts.Blockstore = filtered
+			opts.Multicar = multicar
 		}
 
 		switch cctx.String("log-file") {
@@ -389,4 +422,20 @@ func (s serverApi) IsUnsealed(ctx context.Context, minerAddr address.Address, se
 
 func (s serverApi) UnsealSectorAt(ctx context.Context, minerAddr address.Address, sectorID abi.SectorNumber, offset abi.UnpaddedPieceSize, length abi.UnpaddedPieceSize) (mount.Reader, error) {
 	return s.sa.UnsealSectorAt(ctx, minerAddr, sectorID, offset, length)
+}
+
+func LoadCar(multicar *frisbii.MultiReadableStorage, carPath string) error {
+	//start := time.Now()
+	//logger.Infof("Opening CAR file [%s]...", carPath)
+	carFile, err := os.Open(carPath)
+	if err != nil {
+		return err
+	}
+	store, err := carstorage.OpenReadable(carFile, car.UseWholeCIDs(false))
+	if err != nil {
+		return err
+	}
+	//logger.Infof("CAR file [%s] opened in %s", carPath, time.Since(start))
+	multicar.AddStore(store, store.Roots())
+	return nil
 }

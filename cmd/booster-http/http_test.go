@@ -244,9 +244,9 @@ func TestHttpGzipResponse(t *testing.T) {
 				ServePieces:      true,
 				ServeTrustless:   true,
 				CompressionLevel: tc.serverCompressionLevel,
-				Blockstore:       testutil.NewLinkSystemBlockstore(lsys),
-				LogWriter:        os.Stderr,
-				LogHandler:       logHandler,
+				//Blockstore:       testutil.NewLinkSystemBlockstore(lsys),
+				LogWriter:  os.Stderr,
+				LogHandler: logHandler,
 			})
 			err = httpServer.Start(ctx)
 			req.NoError(err)

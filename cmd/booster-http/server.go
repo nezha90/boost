@@ -6,18 +6,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ipfs/go-unixfsnode"
+	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 	"io"
 	"net"
 	"net/http"
 	"time"
 
-	"github.com/filecoin-project/boost-graphsync/storeutil"
 	"github.com/filecoin-project/boost/extern/boostd-data/model"
 	"github.com/filecoin-project/boost/metrics"
 	"github.com/filecoin-project/dagstore/mount"
 	"github.com/filecoin-project/go-address"
 	"github.com/filecoin-project/go-state-types/abi"
-	"github.com/ipfs/boxo/blockstore"
 	"github.com/ipfs/go-cid"
 	"github.com/ipld/frisbii"
 	"github.com/rs/cors"
@@ -56,7 +56,8 @@ type HttpServerApi interface {
 }
 
 type HttpServerOptions struct {
-	Blockstore       blockstore.Blockstore
+	//Blockstore       blockstore.Blockstore
+	Multicar         *frisbii.MultiReadableStorage
 	ServePieces      bool
 	ServeTrustless   bool
 	CompressionLevel int
@@ -101,10 +102,14 @@ func (s *HttpServer) Start(ctx context.Context) error {
 	}
 
 	if s.opts.ServeTrustless {
-		if s.opts.Blockstore == nil {
+		if s.opts.Multicar == nil {
 			return errors.New("no blockstore provided for trustless gateway")
 		}
-		lsys := storeutil.LinkSystemForBlockstore(s.opts.Blockstore)
+
+		lsys := cidlink.DefaultLinkSystem()
+		lsys.TrustedStorage = true
+		unixfsnode.AddUnixFSReificationToLinkSystem(&lsys)
+		lsys.SetReadStorage(s.opts.Multicar)
 		handler.Handle(
 			s.ipfsBasePath(),
 			frisbii.NewHttpIpfs(ctx, lsys, frisbii.WithCompressionLevel(s.opts.CompressionLevel)),
