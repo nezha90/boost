@@ -11,6 +11,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -296,8 +297,19 @@ var runCmd = &cli.Command{
 			//filtered := filters.NewFilteredBlockstore(rbs, multiFilter)
 			//opts.Blockstore = filtered
 
-			cars := []string{
-				"/mnt/172.16.1.47/car/car/baga6ea4seaqkvc4x3z4oa7fhr52esd34tobrmcqewn45b5o7bplwzh4kgrenqaq.car",
+			carPaths := []string{
+				"/mnt/172.16.2.14/car/car/",
+			}
+
+			var cars []string
+
+			for i := range carPaths {
+				tmp, err := WalkDir(carPaths[i])
+				if err != nil {
+					panic(err)
+				}
+
+				cars = append(cars, tmp...)
 			}
 
 			loader := NewLoader(os.Stderr)
@@ -391,6 +403,26 @@ var runCmd = &cli.Command{
 
 		return nil
 	},
+}
+
+// WalkDir 递归获取指定目录下的所有文件完整路径
+func WalkDir(dir string) ([]string, error) {
+	var files []string
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		// 如果是文件，获取完整路径并加入结果列表
+		if !info.IsDir() {
+			absolutePath, err := filepath.Abs(path)
+			if err != nil {
+				return err
+			}
+			files = append(files, absolutePath)
+		}
+		return nil
+	})
+	return files, err
 }
 
 func createRepoDir(repoDir string) (string, error) {
