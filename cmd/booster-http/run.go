@@ -317,7 +317,7 @@ var runCmd = &cli.Command{
 				cars = append(cars, tmp...)
 			}
 
-			fmt.Printf("all cars: %v\n", cars)
+			//fmt.Printf("all cars: %v\n", cars)
 			fmt.Printf("开始加载 car, %s\n", time.Now().String())
 			loader := NewLoader(os.Stderr)
 			multicar := frisbii.NewMultiReadableStorage()
