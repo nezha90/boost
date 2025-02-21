@@ -321,23 +321,29 @@ var runCmd = &cli.Command{
 			fmt.Printf("开始加载 car, %s\n", time.Now().String())
 			loader := NewLoader(os.Stderr)
 			multicar := frisbii.NewMultiReadableStorage()
-			var wg sync.WaitGroup
 			loader.SetStatus(fmt.Sprintf("Loading CARs (%d / %d) ...", 0, len(cars)))
 			var loaded int64
 			err = nil
 
-			for ii, carPath := range cars {
-				wg.Add(1)
-				go func(ii int, carPath string) {
-					err = multierr.Append(err, LoadCar(multicar, carPath))
-					wg.Done()
-					l := atomic.AddInt64(&loaded, 1)
-					loader.SetStatus(fmt.Sprintf("Loading CARs (%d / %d) ...", l, len(cars)))
-				}(ii, carPath)
-			}
-			wg.Wait()
-			if err != nil {
-				return err
+			carss := splitArray(cars, 5000)
+
+			for i := range carss {
+				var wg sync.WaitGroup
+				fmt.Printf("第 %d 组 car 开始加载\n", i+1)
+				for ii, carPath := range carss[i] {
+					wg.Add(1)
+					go func(ii int, carPath string) {
+						err = multierr.Append(err, LoadCar(multicar, carPath))
+						wg.Done()
+						l := atomic.AddInt64(&loaded, 1)
+						loader.SetStatus(fmt.Sprintf("Loading CARs (%d / %d) ...", l, len(cars)))
+					}(ii, carPath)
+				}
+				wg.Wait()
+				if err != nil {
+					return err
+				}
+				fmt.Printf("第 %d 组 car 加载结束\n", i+1)
 			}
 
 			fmt.Printf("加载 car 结束, %s\n", time.Now())
@@ -478,4 +484,16 @@ func LoadCar(multicar *frisbii.MultiReadableStorage, carPath string) error {
 	//logger.Infof("CAR file [%s] opened in %s", carPath, time.Since(start))
 	multicar.AddStore(store, store.Roots())
 	return nil
+}
+
+func splitArray(arr []string, n int) [][]string {
+	var result [][]string
+	for i := 0; i < len(arr); i += n {
+		end := i + n
+		if end > len(arr) {
+			end = len(arr)
+		}
+		result = append(result, arr[i:end])
+	}
+	return result
 }
