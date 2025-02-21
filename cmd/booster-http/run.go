@@ -325,11 +325,11 @@ var runCmd = &cli.Command{
 			var loaded int64
 			err = nil
 
-			carss := splitArray(cars, 5000)
+			carss := splitArray(cars, 100)
 
 			for i := range carss {
 				var wg sync.WaitGroup
-				fmt.Printf("第 %d 组 car 开始加载\n", i+1)
+				fmt.Printf("第 %d 组 car 开始加载,%s\n", i+1, time.Now())
 				for ii, carPath := range carss[i] {
 					wg.Add(1)
 					go func(ii int, carPath string) {
@@ -343,7 +343,7 @@ var runCmd = &cli.Command{
 				if err != nil {
 					return err
 				}
-				fmt.Printf("第 %d 组 car 加载结束\n", i+1)
+				fmt.Printf("第 %d 组 car 加载结束,%s\n", i+1, time.Now())
 			}
 
 			fmt.Printf("加载 car 结束, %s\n", time.Now())
