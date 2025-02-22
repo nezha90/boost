@@ -298,13 +298,12 @@ var runCmd = &cli.Command{
 			//opts.Blockstore = filtered
 
 			carPaths := []string{
-				//"/mnt/172.16.1.25/export/cache/",
-				//"/mnt/172.16.1.26/export/cache/",
-				//"/mnt/172.16.1.29/export/cache/",
-				//"/mnt/172.16.1.32/export/cache/",
-				//"/mnt/172.16.4.19/export/cache/",
-				//"/mnt/172.16.4.23/export/cache/",
-				"/mnt/172.16.4.23/export/test",
+				"/mnt/172.16.1.25/export/sealed",
+				"/mnt/172.16.1.26/export/sealed",
+				"/mnt/172.16.1.29/export/sealed",
+				"/mnt/172.16.1.32/export/sealed",
+				"/mnt/172.16.4.19/export/sealed",
+				"/mnt/172.16.4.23/export/sealed",
 			}
 
 			var cars []string
