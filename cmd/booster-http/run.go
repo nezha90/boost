@@ -313,6 +313,7 @@ var runCmd = &cli.Command{
 				if err != nil {
 					panic(err)
 				}
+				fmt.Printf("%s 下的 car 数量: %d\n", carPaths[i], len(tmp))
 
 				cars = append(cars, tmp...)
 			}
