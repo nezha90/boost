@@ -476,11 +476,11 @@ func LoadCar(multicar *frisbii.MultiReadableStorage, carPath string) error {
 	//logger.Infof("Opening CAR file [%s]...", carPath)
 	carFile, err := os.Open(carPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s %s", carPath, err)
 	}
 	store, err := carstorage.OpenReadable(carFile, car.UseWholeCIDs(false))
 	if err != nil {
-		return err
+		return fmt.Errorf("%s %s", carPath, err)
 	}
 	//logger.Infof("CAR file [%s] opened in %s", carPath, time.Since(start))
 	multicar.AddStore(store, store.Roots())
