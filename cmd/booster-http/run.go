@@ -302,6 +302,8 @@ var runCmd = &cli.Command{
 				"/mnt/172.16.1.26/export/sealed/",
 				"/mnt/172.16.1.29/export/sealed/",
 				"/mnt/172.16.1.32/export/sealed/",
+				"/mnt/172.16.1.34/export/sealed/",
+				"/mnt/172.16.1.37/export/sealed/",
 				"/mnt/172.16.4.19/export/sealed/",
 				"/mnt/172.16.4.23/export/sealed/",
 			}
